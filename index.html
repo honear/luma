@@ -140,7 +140,7 @@
       <span id="firmware-version">Checking…</span>
     </div>
 
-    <esp-web-install-button manifest="./manifest.json?v=0.3.35">
+    <esp-web-install-button manifest="./manifest.json?v=0.3.36">
       <button slot="activate">Install firmware</button>
       <span slot="unsupported"
         >Use Chrome or Edge on a desktop. Web Serial is not available in this
@@ -191,7 +191,7 @@
       (async () => {
         const versionEl = document.getElementById("firmware-version");
         try {
-          const response = await fetch("./manifest.json?v=0.3.35", {
+          const response = await fetch("./manifest.json?v=0.3.36", {
             cache: "no-store",
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -240,6 +240,42 @@
           quickButtons.forEach((button) => (button.disabled = !connected));
         }
 
+        async function stopSerialStreams(closePort) {
+          keepReading = false;
+          try {
+            await reader?.cancel();
+          } catch (_) {}
+          try {
+            writer?.releaseLock();
+          } catch (_) {}
+          writer = undefined;
+          if (closePort && port) {
+            try {
+              await port.close();
+            } catch (_) {}
+          }
+        }
+
+        async function reopenConsoleAfterReset() {
+          appendLog("[page] Reconnecting console after reset...\n");
+          await stopSerialStreams(true);
+          setConnected(false);
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          try {
+            await port.open({ baudRate: 115200 });
+            writer = port.writable.getWriter();
+            setConnected(true);
+            appendLog("[page] Console reconnected. Try 'version' or 'status'.\n");
+            readLoop();
+          } catch (error) {
+            appendLog(
+              `[page] Reconnect failed: ${error.message}\n` +
+                "[page] Click 'Connect console' again and choose the Luma port.\n"
+            );
+            port = undefined;
+          }
+        }
+
         async function readLoop() {
           keepReading = true;
           while (port?.readable && keepReading) {
@@ -263,7 +299,7 @@
           const trimmed = command.trim();
           if (!trimmed || !writer) return;
           appendLog(`\n> ${trimmed}\n`);
-          await writer.write(encoder.encode(`${trimmed}\n`));
+          await writer.write(encoder.encode(`${trimmed}\r\n`));
         }
 
         connectBtn.addEventListener("click", async () => {
@@ -285,11 +321,7 @@
 
         disconnectBtn.addEventListener("click", async () => {
           try {
-            keepReading = false;
-            await reader?.cancel();
-            writer?.releaseLock();
-            writer = undefined;
-            await port?.close();
+            await stopSerialStreams(true);
           } catch (error) {
             appendLog(`\n[page] Disconnect error: ${error.message}\n`);
           } finally {
@@ -308,6 +340,7 @@
             await port.setSignals({ dataTerminalReady: true, requestToSend: false });
             await new Promise((resolve) => setTimeout(resolve, 100));
             await port.setSignals({ dataTerminalReady: false, requestToSend: false });
+            reopenConsoleAfterReset();
           } catch (error) {
             appendLog(`\n[page] Reset signal failed: ${error.message}\n`);
           }
