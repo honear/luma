@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Source for the public flash page (https://honear.github.io/Luma/).
+  Source for the public flash page (https://honear.github.io/luma/).
   Pushed to honear/luma main by .github/workflows/mirror-release-to-luma.yml
   on every release. The manifest's ?v= cache-bust query is rewritten by the
   workflow to the release tag so old manifest.json copies aren't reused.
@@ -10,7 +10,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Luma — USB flash (recovery)</title>
-    <link rel="canonical" href="https://honear.github.io/Luma/" />
+    <link rel="canonical" href="https://honear.github.io/luma/" />
     <style>
       :root {
         --esp-tools-button-color: #2563eb;
@@ -81,7 +81,7 @@
       <span id="firmware-version">Checking…</span>
     </div>
 
-    <esp-web-install-button manifest="./manifest.json?v=0.3.32">
+    <esp-web-install-button manifest="./manifest.json?v=0.3.33">
       <button slot="activate">Install firmware</button>
       <span slot="unsupported"
         >Use Chrome or Edge on a desktop. Web Serial is not available in this
@@ -100,7 +100,7 @@
       (async () => {
         const versionEl = document.getElementById("firmware-version");
         try {
-          const response = await fetch("./manifest.json?v=0.3.32", {
+          const response = await fetch("./manifest.json?v=0.3.33", {
             cache: "no-store",
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
